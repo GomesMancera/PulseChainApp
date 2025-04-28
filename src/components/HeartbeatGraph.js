@@ -1,14 +1,17 @@
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { Easing, useSharedValue, useAnimatedProps, withRepeat, withTiming } from 'react-native-reanimated';
+import { fetchBitcoinMarketData } from '../services/cryptoService';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 export default function HeartbeatGraph() {
+  const [volume, setVolume] = useState(1);
   const progress = useSharedValue(0);
 
   const animatedProps = useAnimatedProps(() => {
-    const amplitude = 20 * Math.sin(progress.value * Math.PI * 2);
+    const amplitude = 10 + (volume / 50000000); // O volume vai influenciar a amplitude
     const path = `
       M0,50 
       Q25,${50 - amplitude} 50,50 
@@ -19,12 +22,22 @@ export default function HeartbeatGraph() {
     return { d: path };
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     progress.value = withRepeat(
       withTiming(1, { duration: 2000, easing: Easing.linear }),
       -1,
       true
     );
+
+    async function loadData() {
+      const data = await fetchBitcoinMarketData();
+      if (data && data.total_volumes && data.total_volumes.length > 0) {
+        const lastVolume = data.total_volumes[data.total_volumes.length - 1][1];
+        setVolume(lastVolume);
+      }
+    }
+
+    loadData();
   }, []);
 
   return (
