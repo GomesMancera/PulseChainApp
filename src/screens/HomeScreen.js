@@ -1,12 +1,15 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Button } from 'react-native';
 import HeartbeatGraph from '../components/HeartbeatGraph';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>PulseChain 🔥</Text>
       <Text style={styles.subtitle}>Sinta o batimento do mercado cripto</Text>
       <HeartbeatGraph />
+      <View style={{ marginTop: 30 }}>
+        <Button title="Ver Mapa Pulsante 🌍" onPress={() => navigation.navigate('Map')} color="#00FFFF" />
+      </View>
     </View>
   );
 }
