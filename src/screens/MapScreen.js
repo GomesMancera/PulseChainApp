@@ -11,12 +11,11 @@ import { getGlobalMarketData, getRegionalVolumes } from '../services/cryptoServi
 
 const { width } = Dimensions.get('window');
 
-// 📍 Posições refinadas
 const regionPositions = [
-  { top: '35%', left: '30%' }, // EUA (ajustado para esquerda)
+  { top: '35%', left: '30%' }, // EUA
   { top: '58%', left: '30%' }, // Brasil
   { top: '32%', left: '45%' }, // Europa
-  { top: '52%', left: '42%' }, // África (ajustado levemente)
+  { top: '52%', left: '42%' }, // África
   { top: '48%', left: '63%' }, // Índia
   { top: '38%', left: '68%' }, // China
   { top: '35%', left: '75%' }, // Japão
@@ -26,6 +25,7 @@ const regionPositions = [
 export default function MapScreen() {
   const [marketCap, setMarketCap] = useState(null);
   const [pulseScales, setPulseScales] = useState([]);
+  const [colors, setColors] = useState([]);
   const sharedValuesRef = useRef(regionPositions.map(() => useSharedValue(1)));
 
   useEffect(() => {
@@ -33,21 +33,44 @@ export default function MapScreen() {
       const globalData = await getGlobalMarketData();
       const regionalData = await getRegionalVolumes();
 
+      console.log('Dados recebidos da API:', regionalData);
+
       if (globalData) setMarketCap(globalData.total_market_cap.usd);
 
       if (regionalData && regionalData.length > 0) {
         const maxCap = Math.max(...regionalData.map(m => m.market_cap));
         const normalizedScales = regionalData.map(m => {
           const percent = m.market_cap / maxCap;
-          const scale = 1 + percent * 1.2; // mais suave e equilibrado
-          return Math.min(scale, 2.0); // limite máximo ajustado
+          const scale = 1 + percent * 1.2;
+          return Math.min(scale, 2.0);
+        });
+
+        const colorList = regionalData.map(m => {
+          const change = m.price_change_percentage_24h;
+          if (change > 5) return '#00FF00';    // verde
+          if (change < -5) return '#FF3333';   // vermelho
+          return '#00FFFF';                   // azul padrão
         });
 
         setPulseScales(normalizedScales);
+        setColors(colorList);
 
         normalizedScales.forEach((scale, i) => {
           sharedValuesRef.current[i].value = withRepeat(
             withTiming(scale, { duration: 1200, easing: Easing.ease }),
+            -1,
+            true
+          );
+        });
+      } else {
+        // fallback: escala e cor padrão
+        const fallbackScale = 1.2;
+        setPulseScales(Array(regionPositions.length).fill(fallbackScale));
+        setColors(Array(regionPositions.length).fill('#00FFFF'));
+
+        regionPositions.forEach((_, i) => {
+          sharedValuesRef.current[i].value = withRepeat(
+            withTiming(fallbackScale, { duration: 1200, easing: Easing.ease }),
             -1,
             true
           );
@@ -69,14 +92,22 @@ export default function MapScreen() {
 
         {regionPositions.map(({ top, left }, index) => {
           const animatedStyle = useAnimatedStyle(() => ({
-            transform: [{ scale: sharedValuesRef.current[index].value }],
-            opacity: 2 - sharedValuesRef.current[index].value,
+            transform: [{ scale: sharedValuesRef.current[index]?.value || 1 }],
+            opacity: 2 - (sharedValuesRef.current[index]?.value || 1),
           }));
 
           return (
             <Animated.View
               key={index}
-              style={[styles.pulseCircle, { top, left }, animatedStyle]}
+              style={[
+                styles.pulseCircle,
+                {
+                  top,
+                  left,
+                  backgroundColor: colors[index] || '#00FFFF',
+                },
+                animatedStyle,
+              ]}
             />
           );
         })}
@@ -112,6 +143,5 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#00FFFF',
   },
 });

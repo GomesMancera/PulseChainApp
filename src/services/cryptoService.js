@@ -40,13 +40,15 @@ export async function getRegionalVolumes() {
       params: {
         vs_currency: 'usd',
         ids: coinIds.join(','),
+        price_change_percentage: '24h',
         per_page: 100,
       },
     });
     return response.data;
   } catch (error) {
-    console.error('Erro ao buscar dados regionais:', error.message); // <- usar .message
-    return []; // <- retorna array vazio para evitar crash
+    console.error('Erro ao buscar dados regionais:', error.message);
+    return [];
   }
 }
+
 
